@@ -423,6 +423,16 @@
                             </svg>
                             Создать свой инструмент
                         </button>
+
+
+<button onclick="App.createNewChat()"
+        class="bg-purple-600 text-white font-medium py-1.5 px-3 rounded-md hover:bg-purple-700 transition text-xs flex items-center">
+  <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+  </svg>
+  Создать чат
+</button>
                     </div>
                     <div class="space-y-3 mb-4">
                         <div class="tooltip">
@@ -627,7 +637,8 @@
                         </label>
                         <select id="prompt-preset" onchange="App.loadPreset(this.value)"
                                 class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
-                            <option value="">-- Создать с нуля --</option>
+                            <option value="">-- Создать с нуля --</option>   
+                            <option value="sourcelinks">Ссылки на источники</option>
                             <option value="parallel">Параллельные ссылки на Писание</option>
                             <option value="theology-check">Проверка на богословские ошибки</option>
                             <option value="cultural">Культурно-исторический контекст</option>
@@ -1152,6 +1163,18 @@ loadSermon(id) {
         }
     });
 
+// 4. Восстанавливаем чаты
+Object.keys(s.preparation)
+      .filter(k => k.startsWith('chat_'))
+      .forEach(chatId => {
+          const chat = s.preparation[chatId];
+          if (chat && chat.type === 'chat') {
+              this.addSimpleChatTab(chatId, chat.name);
+              this.renderChatMessages(chatId); // подгружаем историю
+          }
+      });
+
+
     // 4. Добавляем вкладки, которых нет в order (на случай расхождений)
     Object.keys(s.preparation)
           .filter(k => k.startsWith('custom_') && !order.includes(k.replace('custom_', '')))
@@ -1656,15 +1679,19 @@ loadSermon(id) {
         },
 
         loadPreset(presetType) {
-            const presets = {
-                'parallel': {
-                    name: 'Параллельные ссылки',
+           const presets = {
+                 'sourcelinks': {
+                    name: 'Ссылки на источники',
 		    description:
         		'Найди 5–7 надёжных христианских ресурсов (gotquestions.org, biblehub.com, desiringgod.org и т.п.), ' +
         		'которые раскрывают тему отрывка {passage} и идеи «{main_idea}». ' +
         		'Выдай результат в Markdown-формате: [Название статьи](URL). ' +
         		'Каждая ссылка должна быть кликабельной. ' +
         		'Добавь 1–2 предложения, почему этот ресурс полезен.'
+                 },
+		'parallel': {
+                    name: 'Параллельные ссылки',
+                    description: 'Найди все параллельные места в Писании, которые связаны с отрывком {passage} и темой моей проповеди: {main_idea}. Укажи, как эти тексты дополняют и раскрывают основную идею. Сгруппируй по темам.'
                 },
                 'theology-check': {
                     name: 'Проверка богословия',
@@ -1848,6 +1875,132 @@ loadSermon(id) {
                 </button>
             `}).join('');
         },
+
+
+// ===== ЧАТ: быстрый старт =====
+createNewChat() {
+  const s = this.sermons.sermons.find(x => x.id === this.currentSermonId);
+  if (!s) { this.displayError('Выберите проповедь'); return; }
+
+  // считаем, сколько чатов уже есть
+  const chatCount = Object.keys(s.preparation).filter(k => k.startsWith('chat_')).length;
+  const chatId = `chat_${Date.now()}`;          // уникальный
+  const name = `Чат ${chatCount + 1}`;
+
+  s.preparation[chatId] = {
+    type: 'chat',
+    name: name,
+    messages: [],
+    ai_generated: false,
+    date_generated: Utils.getCurrentISODate()
+  };
+  if (!s.metadata.customTabOrder) s.metadata.customTabOrder = [];
+  s.metadata.customTabOrder.push(chatId);
+  s.metadata.date_modified = Utils.getCurrentISODate();
+  StorageManager.save(this.sermons);
+
+  this.addSimpleChatTab(chatId, name);
+  this.switchAITab(chatId);
+},
+
+addSimpleChatTab(chatId, name) {
+  const tabsContainer = document.querySelector('#preparation-sections .flex.space-x-1');
+  const contentContainer = document.querySelector('#preparation-sections > div.p-4');
+  if (document.getElementById(`ai-tab-${chatId}`)) return;
+
+  const color = '#8b5cf6';
+  
+  tabsContainer.insertAdjacentHTML('beforeend', `
+    <button id="ai-tab-${chatId}" onclick="App.switchAITab('${chatId}')"
+            class="ai-tab px-4 py-2 text-sm font-medium text-gray-600 transition whitespace-nowrap"
+            style="--tab-color:${color}">${name}</button>
+  `);
+
+  contentContainer.insertAdjacentHTML('beforeend', `
+    <div id="ai-content-${chatId}" class="ai-content-panel">
+      <div class="flex justify-between items-center mb-3">
+        <h3 class="text-base font-bold text-gray-800">${name}</h3>
+        <button onclick="App.deleteChat('${chatId}')" class="text-red-600 hover:text-red-800 text-xs">Удалить</button>
+      </div>
+      <div id="${chatId}-messages" class="space-y-2 max-h-96 overflow-y-auto p-2 border border-gray-200 rounded-md bg-gray-50 text-sm"></div>
+      <div class="mt-3 flex">
+        <input id="${chatId}-input" type="text" class="flex-1 p-2 border border-gray-300 rounded-l-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
+               placeholder="Ваш вопрос..." onkeypress="if(event.key==='Enter') App.sendChatMessage('${chatId}')">
+        <button onclick="App.sendChatMessage('${chatId}')" class="bg-purple-600 text-white px-3 rounded-r-md hover:bg-purple-700 text-sm">Отправить</button>
+      </div>
+    </div>
+  `);
+},
+
+async sendChatMessage(chatId) {
+  const input = document.getElementById(`${chatId}-input`);
+  const text = input.value.trim();
+  if (!text) return;
+
+  const s = this.sermons.sermons.find(x => x.id === this.currentSermonId);
+  if (!s?.preparation[chatId]) return;
+
+  s.preparation[chatId].messages.push({ role: 'user', content: text });
+  this.renderChatMessages(chatId);
+  input.value = '';
+  this.setLoading(true);
+
+  const passage = s.metadata.passage || '';
+  const mainIdea = this.editor.getText();
+  const messages = [
+    { role: 'system', content: `Ты помощник проповедника. Отрывок: ${passage}. Главная идея: ${mainIdea}. Отвечай кратко и по делу.` },
+    ...s.preparation[chatId].messages
+  ];
+
+  try {
+    const r = await fetch(CONFIG.API.URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${CONFIG.API.KEY}` },
+      body: JSON.stringify({ model: CONFIG.API.MODEL, messages, temperature: 0.7, max_tokens: 600 })
+    });
+    if (!r.ok) throw new Error(`API ${r.status}`);
+    const d = await r.json();
+    const reply = d.choices?.[0]?.message?.content || 'Нет ответа';
+    s.preparation[chatId].messages.push({ role: 'assistant', content: reply });
+    s.metadata.date_modified = Utils.getCurrentISODate();
+    StorageManager.save(this.sermons);
+    this.renderChatMessages(chatId);
+  } catch (e) {
+    this.displayError('Ошибка чата: ' + e.message);
+  } finally {
+    this.setLoading(false);
+  }
+},
+
+renderChatMessages(chatId) {
+  const box = document.getElementById(`${chatId}-messages`);
+  const s   = this.sermons.sermons.find(x => x.id === this.currentSermonId);
+  if (!box || !s?.preparation[chatId]) return;
+
+  box.innerHTML = s.preparation[chatId].messages.map(m => `
+    <div class="${m.role==='user'?'text-right':'text-left'}">
+      <span class="chat-message-text inline-block px-3 py-1 rounded-lg ${m.role==='user'?'bg-purple-600 text-white':'bg-gray-200 text-gray-800'}">
+        ${Utils.escapeHtml(m.content)}
+      </span>
+    </div>
+  `).join('');
+  box.scrollTop = box.scrollHeight;
+},
+
+deleteChat(chatId) {
+  if (!confirm('Удалить чат?')) return;
+  const s = this.sermons.sermons.find(x => x.id === this.currentSermonId);
+  if (!s) return;
+  delete s.preparation[chatId];
+  s.metadata.customTabOrder = (s.metadata.customTabOrder || []).filter(id => id !== chatId);
+  StorageManager.save(this.sermons);
+  document.getElementById(`ai-tab-${chatId}`)?.remove();
+  document.getElementById(`ai-content-${chatId}`)?.remove();
+  if (s.preparation.exegesis.content) this.switchAITab('exegesis');
+  else if (s.preparation.illustrations.content) this.switchAITab('illustration');
+  else if (s.preparation.structure.content) this.switchAITab('structure');
+  else if (s.metadata.customTabOrder.length) this.switchAITab(s.metadata.customTabOrder[0]);
+},
 
         renderExistingPromptsList() {
             const list = document.getElementById('existing-prompts-list');

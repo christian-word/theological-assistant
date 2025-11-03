@@ -116,6 +116,15 @@ formatMarkdown(text) {
      */
     getRetryDelay(attempt) {
         return Math.pow(2, attempt) * 1000;
+    },
+
+    /**
+     * Экранирует HTML-теги в тексте
+     */
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 };
 
