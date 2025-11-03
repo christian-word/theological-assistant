@@ -277,6 +277,68 @@
     color: #2563eb;
     text-decoration: underline;
 }
+
+
+/* === Оригинальные цвета + рамка === */
+#sermon-actions button {
+  border: 2px solid transparent;   /* подготовка */
+  transition: all .2s ease;
+}
+
+/* Помощь */
+#sermon-actions .btn-help {
+  background: #f3f4f6;
+  color: #374151;
+  border-color: #d1d5db;
+}
+#sermon-actions .btn-help:hover {
+  background: #e5e7eb;
+  border-color: #9ca3af;
+}
+
+/* Удалить */
+#sermon-actions .btn-delete {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fca5a5;
+}
+#sermon-actions .btn-delete:hover {
+  background: #fecaca;
+  border-color: #ef4444;
+}
+
+/* Сохранено */
+#sermon-actions .btn-save {
+  background: #d1fae5;
+  color: #065f46;
+  border-color: #a7f3d0;
+}
+#sermon-actions .btn-save:hover {
+  background: #a7f3d0;
+  border-color: #34d399;
+}
+
+/* Экспорт DOCX */
+#sermon-actions .btn-export {
+  background: #dbeafe;
+  color: #1e40af;
+  border-color: #bfdbfe;
+}
+#sermon-actions .btn-export:hover {
+  background: #bfdbfe;
+  border-color: #60a5fa;
+}
+
+/* Компактные кнопки-рамка */
+#sermon-actions .btn-help,
+#sermon-actions .btn-delete,
+#sermon-actions .btn-save,
+#sermon-actions .btn-export {
+  padding: 0.35rem 0.75rem;   /* было 0.5 0.875 → стало чуть меньше */
+  line-height: 1.2;           /* чуть туже по высоте */
+  font-size: 0.8125rem;       /* 13 px вместо 14 px (по желанию) */
+}
+
 </style>
 
 </head>
@@ -328,26 +390,29 @@
                     <h1 class="text-2xl font-extrabold text-[#2c7a7b]" id="main-title">AI Ассистент Проповедника (демо версия)</h1>
                     <p class="text-gray-600 text-sm mt-1" id="main-subtitle">Выберите проповедь или создайте новую</p>
                 </div>
-                <div id="sermon-actions" class="hidden space-x-1.5">
-                    <button onclick="App.openHelpModal()"
-                            class="bg-gray-100 text-gray-700 hover:bg-gray-200 flex items-center"
-                            aria-label="Помощь">
-                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M8.228 9c.549-1.165 1.514-2 2.772-2 1.634 0 3 1.366 3 3 0 1.3-.836 2.4-2 2.8v.4m0 2.4v1.2m0-6v.8"/>
-                        </svg>
-                        Помощь
-                    </button>
-                    <button onclick="App.deleteCurrentSermon()"
-                            class="bg-red-100 text-red-700 hover:bg-red-200"
-                            aria-label="Удалить проповедь">Удалить</button>
-                    <button onclick="App.saveCurrentSermon()"
-                            class="bg-green-100 text-green-700 hover:bg-green-200"
-                            aria-label="Сохранить проповедь">Сохранено</button>
-                    <button onclick="App.exportToDocx()"
-                            class="bg-blue-100 text-blue-700 hover:bg-blue-200"
-                            aria-label="Экспортировать в DOCX">Экспорт в DOCX</button>
-                </div>
+<div id="sermon-actions" class="hidden space-x-1.5">
+  <button onclick="App.openHelpModal()"
+          class="btn-help"
+          aria-label="Помощь">
+    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M8.228 9c.549-1.165 1.514-2 2.772-2 1.634 0 3 1.366 3 3 0 1.3-.836 2.4-2 2.8v.4m0 2.4v1.2m0-6v.8"/>
+    </svg>
+    Помощь
+  </button>
+
+  <button onclick="App.deleteCurrentSermon()"
+          class="btn-delete"
+          aria-label="Удалить проповедь">Удалить</button>
+
+  <button onclick="App.saveCurrentSermon()"
+          class="btn-save"
+          aria-label="Сохранить проповедь">Сохранено</button>
+
+  <button onclick="App.exportToDocx()"
+          class="btn-export"
+          aria-label="Экспортировать в DOCX">Экспорт в DOCX</button>
+</div>
             </div>
         </header>
 
